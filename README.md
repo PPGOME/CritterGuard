@@ -1,4 +1,4 @@
-# CritterGuard
+![CritterGuard](https://i.ibb.co/dw39xX6y/minecraft-title.png)
 
 **A comprehensive pet protection plugin for Minecraft servers**
 
