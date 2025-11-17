@@ -9,7 +9,6 @@ import me.ppgome.critterGuard.utility.MessageUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.event.HoverEventSource;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -62,7 +61,7 @@ public class ListSubCommand implements SubCommandHandler {
         this.critterCache = plugin.getCritterCache();
         this.tamingHandler = new CritterTamingHandler(plugin);
         entityTypes = new ArrayList<>(List.of("all", "horse", "mule", "donkey", "camel", "llama",
-                "happy_ghast", "wolf", "cat", "parrot"));
+                "happy_ghast", "strider", "wolf", "cat", "parrot"));
     }
 
     // /critter list [entityType] [playerName] [pageNumber]

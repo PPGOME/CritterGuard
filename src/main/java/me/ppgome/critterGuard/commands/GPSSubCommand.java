@@ -67,11 +67,16 @@ public class GPSSubCommand implements SubCommandHandler {
         Entity matchedEntity = Bukkit.getEntity(matchedSavedAnimal.getEntityUuid());
 
         // If match found, notify the player
+        Location location;
         if(matchedEntity != null) {
+            location = matchedEntity.getLocation();
             player.sendMessage(MessageUtils.locationBuilder(matchedEntity.getLocation(), NamedTextColor.GREEN));
+            if(config.ENABLE_MINIMAP_MOD_OUTPUT) player.sendMessage(MessageUtils.minimapOutput(location));
             player.lookAt(matchedEntity, LookAnchor.EYES, LookAnchor.FEET);
         } else if(matchedSavedAnimal != null) {
-            player.sendMessage(MessageUtils.locationBuilder(matchedSavedAnimal.getLastLocation(), NamedTextColor.GREEN));
+            location = matchedSavedAnimal.getLastLocation();
+            player.sendMessage(MessageUtils.locationBuilder(location, NamedTextColor.GREEN));
+            if(config.ENABLE_MINIMAP_MOD_OUTPUT) player.sendMessage(MessageUtils.minimapOutput(location));
             player.lookAt(Position.block(matchedSavedAnimal.getLastLocation()), LookAnchor.EYES);
         } else {
             player.sendMessage(PlaceholderParser.of(config.GPS_NO_MATCH).identifier(critterIdentifier).parse());

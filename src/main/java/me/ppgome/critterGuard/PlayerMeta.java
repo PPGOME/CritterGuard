@@ -9,6 +9,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -154,7 +155,7 @@ public class PlayerMeta {
      * Gets the list of mounts owned by the player.
      * @return the list of owned mounts.
      */
-    public ArrayList<SavedAnimal> getOwnedList() {
+    public List<SavedAnimal> getOwnedList() {
         return ownedList;
     }
 

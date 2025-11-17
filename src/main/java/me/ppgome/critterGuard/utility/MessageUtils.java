@@ -23,6 +23,18 @@ public class MessageUtils {
                 + " in world: " + location.getWorld().getName(), color);
     }
 
+    public static Component minimapOutput(Location location) {
+        Component voxelMapText = Component.text("[Name: CritterLocation, X: " + (int)location.getX() +
+                " Y: " + (int)location.getY() +
+                " Z: " + (int)location.getZ() +
+                "]", NamedTextColor.RED);
+        Component xaerosMapText = Component.text("xaero-waypoint:CritterLoc:C:" +
+                (int)location.getX() + ":" +
+                (int)location.getY() + ":" +
+                (int)location.getZ() + ":1:true:0:Internal-overworld-waypoints", NamedTextColor.WHITE);
+        return voxelMapText.appendNewline().append(xaerosMapText);
+    }
+
     public static Component miniMessageDeserialize(String message) {
         return mm.deserialize(message);
     }

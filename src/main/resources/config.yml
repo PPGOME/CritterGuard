@@ -1,12 +1,13 @@
 pluginPrefix: "<gold>[</gold><green>CritterGuard</green><gold>]</gold>"
 
 toggles:
-  # Lets
   canBreedLockedAnimals: true
   logMountNotifications: true
   logDismountNotifications: true
   logDeathNotifications: true
   enableDisguiseSaddles: true
+  # Outputs text for some minimap mods that allow quick waypoint creation when "/cg gps" is used.
+  enableMinimapModOutput: false
 
 messages:
   access:

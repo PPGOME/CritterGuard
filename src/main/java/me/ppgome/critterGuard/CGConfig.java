@@ -29,6 +29,7 @@ public class CGConfig {
     public boolean LOG_DISMOUNT_NOTIFICATIONS;
     public boolean LOG_DEATH_NOTIFICATIONS;
     public boolean ENABLE_DISGUISE_SADDLES;
+    public boolean ENABLE_MINIMAP_MOD_OUTPUT;
 
     // Messages
     /*
@@ -123,6 +124,7 @@ public class CGConfig {
         LOG_DISMOUNT_NOTIFICATIONS = plugin.getConfig().getBoolean(togglesPath + "logDismountNotifications", true);
         LOG_DEATH_NOTIFICATIONS = plugin.getConfig().getBoolean(togglesPath + "logDeathNotifications", true);
         ENABLE_DISGUISE_SADDLES = plugin.getConfig().getBoolean(togglesPath + "enableDisguiseSaddles", true);
+        ENABLE_MINIMAP_MOD_OUTPUT = config.getBoolean(togglesPath + "enableMinimapModOutput", false);
 
         // MESSAGES
         // --ACCESS

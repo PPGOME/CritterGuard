@@ -403,7 +403,7 @@ public class CGEventHandler implements Listener {
             return;
         }
 
-        if (mountSeatHandler.isCamel(mount) || mountSeatHandler.isHappyGhast(mount)) {
+        if (mountSeatHandler.isCamel(mount) || mountSeatHandler.isHappyGhast(mount) || mount instanceof Strider) {
             tamingHandler.handleTaming(player, mount);
         }
 
