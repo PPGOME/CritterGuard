@@ -1,9 +1,11 @@
 package me.ppgome.critterGuard;
 
+import me.ppgome.critterGuard.commands.actions.CommandAction;
 import me.ppgome.critterGuard.database.MountAccess;
 import me.ppgome.critterGuard.database.SavedMount;
 import me.ppgome.critterGuard.database.SavedPet;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.scheduler.BukkitScheduler;
 
 import java.util.*;
 
@@ -35,6 +37,12 @@ public class CritterCache {
      * This cache is used to store all PlayerMetas for quick retrieval.
      */
     private HashMap<UUID, PlayerMeta> playerMetaCache = new HashMap<>();
+
+    private HashMap<UUID, BukkitScheduler> clickCache = new HashMap<>();
+
+    private HashMap<UUID, CommandAction> actionCache = new HashMap<>();
+
+    // TODO: REMOVE BELOW!
 
     /**
      * An in-memory cache of awaiting clicks for access requests.
@@ -72,7 +80,7 @@ public class CritterCache {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    // -------- Saved Mount Cache
+    // -------- Saved Mount Cache --------------------------------------------------------------------------------------
 
     /**
      * Adds a new saved mount to the cache.
@@ -102,7 +110,7 @@ public class CritterCache {
         savedMountsCache.remove(savedMount.getEntityUuid());
     }
 
-    // -------- Saved Pet Cache
+    // -------- Saved Pet Cache ----------------------------------------------------------------------------------------
 
     /**
      * Adds a new saved pet's UUID to the cache.
@@ -132,7 +140,7 @@ public class CritterCache {
         savedPetsCache.remove(savedPet.getEntityUuid());
     }
 
-    // -------- Player Meta Cache
+    // -------- Player Meta Cache --------------------------------------------------------------------------------------
 
     /**
      * Adds a player's playermeta to the cache.
@@ -162,16 +170,16 @@ public class CritterCache {
         playerMetaCache.remove(playerUuid);
     }
 
-    // -------- Access Click Cache
+    // -------- Click Cache --------------------------------------------------------------------------------------------
 
     /**
      * Adds a player who is going to be clicking an entity to grant access to another player.
      *
      * @param playerUuid The UUID of the player who will be clicking
-     * @param playerGettingAccess The MountAccess instance representing the access that will be added
+     * @param scheduler The scheduler instance representing the timeout of a click action
      */
-    public void addAwaitingAccess(UUID playerUuid, MountAccess playerGettingAccess) {
-        accessClickCache.put(playerUuid, playerGettingAccess);
+    public void addAwaitingClick(UUID playerUuid, BukkitScheduler scheduler) {
+        clickCache.put(playerUuid, scheduler);
     }
 
     /**
@@ -180,8 +188,8 @@ public class CritterCache {
      * @param playerUuid The UUID of the player being checked for
      * @return True if they are in the cache, false if not.
      */
-    public boolean isAwaitingAccess(UUID playerUuid) {
-        return accessClickCache.containsKey(playerUuid);
+    public boolean isAwaitingClick(UUID playerUuid) {
+        return clickCache.containsKey(playerUuid);
     }
 
     /**
@@ -190,10 +198,10 @@ public class CritterCache {
      * @param playerUuid The UUID of the player
      * @return The value in the map
      */
-    public MountAccess getAwaitingAccess(UUID playerUuid) {
-        MountAccess mountAccess = accessClickCache.get(playerUuid);
-        removeAwaitingAccess(playerUuid);
-        return mountAccess;
+    public BukkitScheduler getAwaitingClick(UUID playerUuid) {
+        BukkitScheduler scheduler = clickCache.get(playerUuid);
+        removeAwaitingClick(playerUuid);
+        return scheduler;
     }
 
     /**
@@ -201,30 +209,30 @@ public class CritterCache {
      *
      * @param playerUuid the UUID of the player whose record is being removed from the cache
      */
-    public void removeAwaitingAccess(UUID playerUuid) {
-        accessClickCache.remove(playerUuid);
+    public void removeAwaitingClick(UUID playerUuid) {
+        clickCache.remove(playerUuid);
     }
 
-    // -------- Tame Click Cache
+    // -------- Action Cache -------------------------------------------------------------------------------------------
 
     /**
      * Adds a player who is going to be clicking an entity to grant access to another player.
      *
      * @param playerUuid The UUID of the player who will be clicking
-     * @param playerTaming The player who the mount is being tamed to
+     * @param commandAction The scheduler instance representing the timeout of a click action
      */
-    public void addAwaitingTame(UUID playerUuid, OfflinePlayer playerTaming) {
-        tameClickCache.put(playerUuid, playerTaming);
+    public void addAwaitingAction(UUID playerUuid, CommandAction commandAction) {
+        actionCache.put(playerUuid, commandAction);
     }
 
     /**
-     * Checks if there's a record of the specified player who is in the process of taming an entity to another player.
+     * Checks if there's a record of the specified player who is in the process of granting access to another player.
      *
      * @param playerUuid The UUID of the player being checked for
      * @return True if they are in the cache, false if not.
      */
-    public boolean isAwaitingTame(UUID playerUuid) {
-        return tameClickCache.containsKey(playerUuid);
+    public boolean isAwaitingAction(UUID playerUuid) {
+        return actionCache.containsKey(playerUuid);
     }
 
     /**
@@ -233,10 +241,10 @@ public class CritterCache {
      * @param playerUuid The UUID of the player
      * @return The value in the map
      */
-    public OfflinePlayer getAwaitingTame(UUID playerUuid) {
-        OfflinePlayer playerTaming = tameClickCache.get(playerUuid);
-        removeAwaitingTame(playerUuid);
-        return playerTaming;
+    public CommandAction getAwaitingAction(UUID playerUuid) {
+        CommandAction commandAction = actionCache.get(playerUuid);
+        removeAwaitingClick(playerUuid);
+        return commandAction;
     }
 
     /**
@@ -244,68 +252,8 @@ public class CritterCache {
      *
      * @param playerUuid the UUID of the player whose record is being removed from the cache
      */
-    public void removeAwaitingTame(UUID playerUuid) {
-        tameClickCache.remove(playerUuid);
-    }
-
-    // -------- Untame Click Cache
-
-    /**
-     * Adds a player who is going to be clicking an entity to untame it.
-     *
-     * @param playerUuid The UUID of the player who will be clicking
-     */
-    public void addAwaitingUntame(UUID playerUuid) {
-        untameClickCache.add(playerUuid);
-    }
-
-    /**
-     * Checks if there's a record of the specified player who is in the process of untaming a critter.
-     *
-     * @param playerUuid The UUID of the player being checked for
-     * @return True if they are in the cache, false if not.
-     */
-    public boolean isAwaitingUntame(UUID playerUuid) {
-        return untameClickCache.contains(playerUuid);
-    }
-
-    /**
-     * Removes a record from the cache that matches the specified UUID.
-     *
-     * @param playerUuid the UUID of the player whose record is being removed from the cache
-     */
-    public void removeAwaitingUntame(UUID playerUuid) {
-        untameClickCache.remove(playerUuid);
-    }
-
-    // -------- Info Click Cache
-
-    /**
-     * Adds a player who is going to be clicking an entity to get its info.
-     *
-     * @param playerUuid The UUID of the player who will be clicking
-     */
-    public void addAwaitingInfo(UUID playerUuid) {
-        infoClickCache.add(playerUuid);
-    }
-
-    /**
-     * Checks if there's a record of the specified player who is in the process of getting a critter's info.
-     *
-     * @param playerUuid The UUID of the player being checked for
-     * @return True if they are in the cache, false if not.
-     */
-    public boolean isAwaitingInfo(UUID playerUuid) {
-        return infoClickCache.contains(playerUuid);
-    }
-
-    /**
-     * Removes a record from the cache that matches the specified UUID.
-     *
-     * @param playerUuid the UUID of the player whose record is being removed from the cache
-     */
-    public void removeAwaitingInfo(UUID playerUuid) {
-        infoClickCache.remove(playerUuid);
+    public void removeAwaitingAction(UUID playerUuid) {
+        actionCache.remove(playerUuid);
     }
 
 }

@@ -1,6 +1,7 @@
 package me.ppgome.critterGuard;
 
 import io.papermc.paper.event.player.PlayerNameEntityEvent;
+import me.ppgome.critterGuard.commands.actions.*;
 import me.ppgome.critterGuard.database.*;
 import me.ppgome.critterGuard.disguisesaddles.DisguiseSaddleHandler;
 import me.ppgome.critterGuard.disguisesaddles.LibsDisguiseProvider;
@@ -142,6 +143,22 @@ public class CGEventHandler implements Listener {
         UUID entityUuid = entity.getUniqueId();
         SavedMount savedMount = critterCache.getSavedMount(entityUuid);
 
+        if(critterCache.isAwaitingClick(playerUuid) && critterCache.isAwaitingAction(playerUuid)) {
+            CommandAction commandAction = critterCache.getAwaitingAction(playerUuid);
+            switch(commandAction) {
+                case AccessAction accessAction:
+                    break;
+                case InfoAction infoAction:
+                    break;
+                case TameAction tameAction:
+                    break;
+                case UntameAction untameAction:
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + commandAction);
+            }
+        }
+
         if(critterCache.isAwaitingInfo(playerUuid)) {
             interactInfo(entity, player);
             event.setCancelled(true);
@@ -237,6 +254,13 @@ public class CGEventHandler implements Listener {
                         .append(Component.text("Health: ", NamedTextColor.GREEN))
                         .append(Component.text(df.format(abstractHorse.getAttribute(Attribute.MAX_HEALTH).getValue()),
                                 NamedTextColor.YELLOW)).appendNewline();
+
+                if(entity instanceof Llama llama) {
+                    message = message.appendNewline().append(Component.text("Strength: ",
+                                    NamedTextColor.LIGHT_PURPLE))
+                            .append(Component.text(llama.getStrength(),
+                                    NamedTextColor.YELLOW));
+                }
             }
             player.sendMessage(message);
             critterCache.removeAwaitingInfo(player.getUniqueId());
