@@ -56,20 +56,14 @@ public class TeleportUtils {
                             .parse());
                     return;
                 } else if(critterEntity == null) {
-                    System.out.println("We get here 1");
                     // Load the chunk the plugin last saw the entity in and try to grab it that way
                     Chunk lastChunk = critter.getLastLocation().getChunk();
-                    System.out.println("We get here 2");
                     lastChunk.load();
-                    System.out.println("We get here 3");
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        System.out.println("We get here 4");
                         Entity chunkEntity = Bukkit.getEntity(critter.getEntityUuid());
                         if(chunkEntity != null) {
-                            System.out.println("We get here 5");
                             action.execute(sender, chunkEntity, targetPlayer.getName(), plugin);
                         } else {
-                            System.out.println("We get here 6");
                             sender.sendMessage(PlaceholderParser
                                     .of(plugin.getCGConfig().TELEPORT_NO_MATCH)
                                     .player(targetPlayer.getName())

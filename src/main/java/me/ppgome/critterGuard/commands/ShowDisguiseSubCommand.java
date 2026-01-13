@@ -5,6 +5,7 @@ import me.ppgome.critterGuard.CritterGuard;
 import me.ppgome.critterGuard.disguisesaddles.DisguiseSaddleHandler;
 import me.ppgome.critterGuard.disguisesaddles.LibsDisguiseProvider;
 import me.ppgome.critterGuard.utility.CritterTamingHandler;
+import me.ppgome.critterGuard.utility.CritterUtils;
 import me.ppgome.critterGuard.utility.MessageUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
@@ -34,10 +35,6 @@ public class ShowDisguiseSubCommand implements SubCommandHandler {
      * The instance of the plugin's LibsDisguiseProvider
      */
     private LibsDisguiseProvider disguiseProvider;
-    /**
-     * The instance of the plugin's CritterTamingHandler
-     */
-    private CritterTamingHandler critterTamingHandler;
 
     /**
      * Constructor for ShowDisguiseSubCommand.
@@ -50,7 +47,6 @@ public class ShowDisguiseSubCommand implements SubCommandHandler {
         config = plugin.getCGConfig();
         this.disguiseHandler = plugin.getDisguiseSaddleHandler();
         this.disguiseProvider = plugin.getDisguiseProvider();
-        this.critterTamingHandler = plugin.getCritterTamingHandler();
     }
 
     @Override
@@ -58,7 +54,7 @@ public class ShowDisguiseSubCommand implements SubCommandHandler {
 
         if(!(sender instanceof Player player)) return;
         Entity mount = player.getVehicle();
-        if(!critterTamingHandler.isMountableEntity(mount)) return;
+        if(!CritterUtils.isMountableEntity(mount)) return;
 
         boolean isDisguised = disguiseProvider.isDisguisedToPlayer(player, mount);
 

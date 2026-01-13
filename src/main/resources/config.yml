@@ -21,27 +21,23 @@ messages:
 
     # Sent to a player when they grant full access to another player
     # PLACEHOLDER: <player> is replaced with the name of the player receiving access
-    targetGrantedFullAccess: "<green>You have granted <yellow><player></yellow> full access to this entity.</green>"
+    targetGrantedFullAccess: "<green>You have granted <yellow><player></yellow> full access to this mount.</green>"
 
     # Sent to a player when they grant passenger access to another player
     # PLACEHOLDER: <player> is replaced with the name of the player receiving access
-    targetGrantedPassengerAccess: "<green>You have granted <yellow><player></yellow> passenger access to this entity.</green>"
+    targetGrantedPassengerAccess: "<green>You have granted <yellow><player></yellow> passenger access to this mount.</green>"
 
     # Sent to a player when their full access to a mount is revoked
     # PLACEHOLDER: <player> is replaced with the name of the player revoking access
     revokedFullAccess: "<green>Your full access to <yellow><player>'s</yellow> mount has been revoked.</green>"
 
-    # Sent to a player when their passenger access to a mount is revoked
+    # Sent to a player when their access to a mount is revoked
     # PLACEHOLDER: <player> is replaced with the name of the player revoking access
-    revokedPassengerAccess: "<green>Your passenger access to <yellow><player>'s</yellow> mount has been revoked.</green>"
+    revokedAccess: "<green>Your access to <yellow><player>'s</yellow> mount has been revoked.</green>"
 
-    # Sent to a player when they revoke full access from another player
+    # Sent to a player when they revoke access from another player
     # PLACEHOLDER: <player> is replaced with the name of the player losing access
-    targetRevokedFullAccess: "<green>You have revoked <yellow><player></yellow>'s full access to this mount.</green>"
-
-    # Sent to a player when they revoke passenger access from another player
-    # PLACEHOLDER: <player> is replaced with the name of the player losing access
-    targetRevokedPassengerAccess: "<green>You have revoked <yellow><player></yellow>'s passenger access to this mount.</green>"
+    targetRevokedAccess: "<green>You have revoked <yellow><player></yellow>'s access to this mount.</green>"
 
     # When a player tries to grant passenger access to a player that already has access
     alreadyHasAccess: "<red>That player already has access to this mount.</red>"

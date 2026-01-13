@@ -67,8 +67,8 @@ public class CritterAccessHandler {
      * @param entityUuid     The UUID of the entity being accessed.
      */
     public void handleFullAccess(Player player, SavedMount savedMount,
-                                 MountAccess mountAccess, UUID beingAddedUuid, UUID entityUuid) {
-        processAccessChange(player, savedMount, mountAccess, beingAddedUuid, entityUuid);
+                                 MountAccess mountAccess, boolean isBeingAdded, UUID beingAddedUuid, UUID entityUuid) {
+        processAccessChange(player, savedMount, mountAccess, isBeingAdded, beingAddedUuid, entityUuid);
     }
 
     /**
@@ -82,12 +82,12 @@ public class CritterAccessHandler {
      * @param entityUuid     The UUID of the entity being accessed.
      */
     public void handlePassengerAccess(Player player, Entity entity, SavedMount savedMount,
-                                      MountAccess mountAccess, UUID beingAddedUuid, UUID entityUuid) {
+                                      MountAccess mountAccess, boolean isBeingAdded, UUID beingAddedUuid, UUID entityUuid) {
         if (!(entity instanceof Camel || entity instanceof HappyGhast)) {
             player.sendMessage(config.DOES_NOT_SUPPORT_PASSENGERS);
             return;
         }
-        processAccessChange(player, savedMount, mountAccess, beingAddedUuid, entityUuid);
+        processAccessChange(player, savedMount, mountAccess, isBeingAdded, beingAddedUuid, entityUuid);
     }
 
     /**
@@ -100,18 +100,19 @@ public class CritterAccessHandler {
      * @param entityUuid     The UUID of the entity being accessed.
      */
     private void processAccessChange(Player player, SavedMount savedMount,
-                                     MountAccess mountAccess, UUID beingAddedUuid, UUID entityUuid) {
+                                     MountAccess mountAccess, boolean isBeingAdded, UUID beingAddedUuid, UUID entityUuid) {
         boolean hasAccess = savedMount.hasAccess(beingAddedUuid);
 
-        if (mountAccess.isBeingAdded()) {
+        if (isBeingAdded) {
             if (hasAccess) {
                 player.sendMessage(config.ALREADY_HAS_ACCESS);
             } else {
-                grantAccess(player, savedMount, mountAccess, beingAddedUuid, entityUuid);
+                grantAccess(player, savedMount, mountAccess, beingAddedUuid);
             }
         } else {
             if (hasAccess) {
-                removeAccess(player, savedMount, mountAccess, beingAddedUuid);
+                removeAccess(savedMount, mountAccess, beingAddedUuid);
+                sendRevocationMessage(beingAddedUuid, player);
             } else {
                 player.sendMessage(config.ALREADY_HAS_NO_ACCESS);
             }
@@ -125,11 +126,9 @@ public class CritterAccessHandler {
      * @param savedMount     The SavedMount object associated with the mount.
      * @param mountAccess    The MountAccess object containing access details.
      * @param beingAddedUuid The UUID of the player being granted access.
-     * @param entityUuid     The UUID of the entity being accessed.
      */
     private void grantAccess(Player player, SavedMount savedMount, MountAccess mountAccess,
-                             UUID beingAddedUuid, UUID entityUuid) {
-        mountAccess.setMountUuid(entityUuid.toString());
+                             UUID beingAddedUuid) {
         savedMount.addAccess(beingAddedUuid, mountAccess);
         mountAccessTable.save(mountAccess);
         savedMountTable.save(savedMount);
@@ -169,42 +168,35 @@ public class CritterAccessHandler {
     /**
      * Removes access to a mount for a player.
      *
-     * @param player         The player removing access.
      * @param savedMount     The SavedMount object associated with the mount.
      * @param mountAccess    The MountAccess object containing access details.
      * @param beingAddedUuid The UUID of the player whose access is being removed.
      */
-    private void removeAccess(Player player, SavedMount savedMount, MountAccess mountAccess,
-                              UUID beingAddedUuid) {
+    public void removeAccess(SavedMount savedMount, MountAccess mountAccess, UUID beingAddedUuid) {
         savedMount.removeAccess(beingAddedUuid);
         critterCache.getPlayerMeta(beingAddedUuid).removeMountAccess(mountAccess);
+    }
 
+    /**
+     * Sends a message to the initiating player and the player being removed whenever access is revoked.
+     *
+     * @param beingAddedUuid The UUID of the player whose access is being removed.
+     * @param player The player initiating the removal.
+     */
+    public void sendRevocationMessage(UUID beingAddedUuid, Player player) {
         // Send messages depending on access type
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             OfflinePlayer playerBeingAdded = Bukkit.getOfflinePlayer(beingAddedUuid);
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (mountAccess.isFullAccess()) {
-                    player.sendMessage(PlaceholderParser
-                            .of(config.TARGET_REVOKED_FULL_ACCESS)
+                player.sendMessage(PlaceholderParser
+                        .of(config.TARGET_REVOKED_ACCESS)
+                        .player(playerBeingAdded.getName())
+                        .parse());
+                if (playerBeingAdded.isOnline()) {
+                    Bukkit.getPlayer(beingAddedUuid).sendMessage(PlaceholderParser
+                            .of(config.REVOKED_ACCESS)
                             .player(playerBeingAdded.getName())
                             .parse());
-                    if (playerBeingAdded.isOnline()) {
-                        Bukkit.getPlayer(beingAddedUuid).sendMessage(PlaceholderParser
-                                .of(config.REVOKED_FULL_ACCESS)
-                                .player(playerBeingAdded.getName())
-                                .parse());
-                    }
-                } else {
-                    player.sendMessage(PlaceholderParser
-                            .of(config.TARGET_REVOKED_PASSENGER_ACCESS)
-                            .player(playerBeingAdded.getName())
-                            .parse());
-                    if (playerBeingAdded.isOnline()) {
-                        Bukkit.getPlayer(beingAddedUuid).sendMessage(PlaceholderParser
-                                .of(config.REVOKED_PASSENGER_ACCESS)
-                                .player(playerBeingAdded.getName())
-                                .parse());
-                    }
                 }
             });
         });

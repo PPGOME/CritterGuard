@@ -19,6 +19,7 @@ CritterGuard protects these creatures from theft and harm:
 - Zombie Horses, Skeleton Horses
 - Llamas, Camels
 - Happy Ghasts
+- Striders
 
 **Companion Creatures:**
 - Wolves, Cats, Parrots

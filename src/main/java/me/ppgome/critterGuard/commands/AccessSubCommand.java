@@ -3,6 +3,7 @@ package me.ppgome.critterGuard.commands;
 import me.ppgome.critterGuard.CGConfig;
 import me.ppgome.critterGuard.CritterCache;
 import me.ppgome.critterGuard.CritterGuard;
+import me.ppgome.critterGuard.actions.AccessAction;
 import me.ppgome.critterGuard.utility.MessageUtils;
 import me.ppgome.critterGuard.database.MountAccess;
 import me.ppgome.critterGuard.utility.PlaceholderParser;
@@ -10,7 +11,9 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,7 +53,19 @@ public class AccessSubCommand implements SubCommandHandler {
     public void execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) return;
 
-        String playerName = args[2];
+        // Parse command arguments
+        boolean isAdd = args[0].equalsIgnoreCase("add");
+        boolean isRemove = args[0].equalsIgnoreCase("remove");
+        boolean isFullAccess = args[1].equalsIgnoreCase("full");
+        boolean isPassengerAccess = args[1].equalsIgnoreCase("passenger");
+
+        // Validate arguments
+        if (!((isAdd && (isFullAccess || isPassengerAccess)) || isRemove)) {
+            Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(getUsage()));
+            return;
+        }
+
+        String playerName = isAdd ? args[2] : args[1];
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             OfflinePlayer playerBeingAdded = Bukkit.getOfflinePlayer(playerName);
@@ -62,39 +77,27 @@ public class AccessSubCommand implements SubCommandHandler {
                 return;
             }
 
-            // Parse command arguments
-            boolean isAdd = args[0].equalsIgnoreCase("add");
-            boolean isRemove = args[0].equalsIgnoreCase("remove");
-            boolean isFullAccess = args[1].equalsIgnoreCase("full");
-            boolean isPassengerAccess = args[1].equalsIgnoreCase("passenger");
+            UUID senderUuid = player.getUniqueId();
+            AccessAction action = new AccessAction(player, playerBeingAdded, isAdd, isFullAccess, plugin);
 
-            // Validate arguments
-            if (!isAdd && !isRemove || !isFullAccess && !isPassengerAccess) {
-                Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(getUsage()));
+            if(player.isInsideVehicle()) {
+                action.execute(player.getVehicle());
                 return;
             }
 
-            // Create MountAccess object
-            MountAccess mountAccess = new MountAccess(
-                    playerBeingAdded.getUniqueId().toString(),
-                    isFullAccess,
-                    isAdd
-            );
-
             Bukkit.getScheduler().runTask(plugin, () -> {
-                UUID senderUuid = player.getUniqueId();
-                critterCache.addAwaitingAccess(senderUuid, mountAccess);
                 sendClickMessage(player, playerBeingAdded, isAdd, isFullAccess);
 
                 // Set timeout
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (critterCache.isAwaitingAccess(senderUuid)) {
-                        critterCache.removeAwaitingAccess(senderUuid);
+                BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (critterCache.isAwaitingClick(senderUuid)) {
+                        critterCache.removeAwaitingClick(senderUuid);
                         if (player.isOnline()) {
                             player.sendMessage(config.CLICK_TIMEOUT);
                         }
                     }
                 }, 20L * 15L); // 15 seconds timeout
+                critterCache.addAwaitingClick(senderUuid, action, task);
             });
         });
     }
@@ -132,7 +135,7 @@ public class AccessSubCommand implements SubCommandHandler {
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if(args.length == 1) return List.of("add", "remove");
-        else if(args.length == 2) return List.of("full", "passenger");
+        else if(args.length == 2 && args[0].equalsIgnoreCase("add")) return List.of("full", "passenger");
         return null;
     }
 
@@ -163,6 +166,6 @@ public class AccessSubCommand implements SubCommandHandler {
 
     @Override
     public int getMinArgs() {
-        return 3;
+        return 2;
     }
 }

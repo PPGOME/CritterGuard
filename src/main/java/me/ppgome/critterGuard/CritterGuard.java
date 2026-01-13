@@ -9,6 +9,7 @@ import me.ppgome.critterGuard.commands.CritterCommand;
 import me.ppgome.critterGuard.database.*;
 import me.ppgome.critterGuard.disguisesaddles.DisguiseSaddleHandler;
 import me.ppgome.critterGuard.disguisesaddles.LibsDisguiseProvider;
+import me.ppgome.critterGuard.utility.CritterAccessHandler;
 import me.ppgome.critterGuard.utility.CritterTamingHandler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -101,6 +102,11 @@ public final class CritterGuard extends JavaPlugin {
     private CritterTamingHandler critterTamingHandler;
 
     /**
+     * Provides methods for granting/revoking access to critters.
+     */
+    private CritterAccessHandler critterAccessHandler;
+
+    /**
      * Provides methods for disguising and undisguising mounts when using the disguise saddles feature.
      */
     private LibsDisguiseProvider disguiseProvider;
@@ -120,6 +126,8 @@ public final class CritterGuard extends JavaPlugin {
         loadDatabaseData();
         critterCache = new CritterCache(this);
         critterTamingHandler = new CritterTamingHandler(this);
+        critterAccessHandler = new CritterAccessHandler(this);
+
 
         if(config.ENABLE_DISGUISE_SADDLES && getServer().getPluginManager().getPlugin("LibsDisguises") != null) {
             disguiseProvider = new LibsDisguiseProvider(this);
@@ -374,6 +382,14 @@ public final class CritterGuard extends JavaPlugin {
      */
     public CritterTamingHandler getCritterTamingHandler() {
         return critterTamingHandler;
+    }
+
+    /**
+     * Returns the CritterAccessHandler instance.
+     * @return the CritterAccessHandler instance.
+     */
+    public CritterAccessHandler getCritterAccessHandler() {
+        return critterAccessHandler;
     }
 
     /**

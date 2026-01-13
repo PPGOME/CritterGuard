@@ -3,12 +3,14 @@ package me.ppgome.critterGuard.commands;
 import me.ppgome.critterGuard.CGConfig;
 import me.ppgome.critterGuard.CritterCache;
 import me.ppgome.critterGuard.CritterGuard;
+import me.ppgome.critterGuard.actions.TameAction;
 import me.ppgome.critterGuard.utility.MessageUtils;
 import me.ppgome.critterGuard.utility.PlaceholderParser;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 import java.util.UUID;
@@ -54,7 +56,7 @@ public class TameSubCommand implements SubCommandHandler {
             if(targetPlayer.hasPlayedBefore()) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     UUID senderUuid = player.getUniqueId();
-                    critterCache.addAwaitingTame(senderUuid, targetPlayer);
+                    TameAction tameAction = new TameAction(player, targetPlayer, plugin);
                     player.sendMessage(PlaceholderParser
                             .of(config.CLICK_TAME)
                             .player(targetPlayer.getName())
@@ -62,15 +64,20 @@ public class TameSubCommand implements SubCommandHandler {
                             .parse());
 
                     // Set timeout
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        if (critterCache.isAwaitingTame(senderUuid)) {
-                            critterCache.removeAwaitingTame(senderUuid);
+                    BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (critterCache.isAwaitingClick(senderUuid)) {
+                            critterCache.removeAwaitingClick(senderUuid);
                             if (player.isOnline()) {
                                 player.sendMessage(config.CLICK_TIMEOUT);
                             }
                         }
                     }, 20L * 15L); // 15 seconds timeout
+
+                    critterCache.addAwaitingClick(senderUuid, tameAction, task);
+
                 });
+            } else {
+                player.sendMessage(config.ACCESS_NO_PLAYER);
             }
         });
 

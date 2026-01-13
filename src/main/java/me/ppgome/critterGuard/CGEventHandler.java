@@ -4,15 +4,9 @@ import io.papermc.paper.event.player.PlayerNameEntityEvent;
 import me.ppgome.critterGuard.database.*;
 import me.ppgome.critterGuard.disguisesaddles.DisguiseSaddleHandler;
 import me.ppgome.critterGuard.disguisesaddles.LibsDisguiseProvider;
-import me.ppgome.critterGuard.utility.CritterAccessHandler;
-import me.ppgome.critterGuard.utility.CritterTamingHandler;
-import me.ppgome.critterGuard.utility.MountSeatHandler;
-import me.ppgome.critterGuard.utility.PlaceholderParser;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import me.ppgome.critterGuard.utility.*;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,10 +17,10 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.world.EntitiesUnloadEvent;
 
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.List;
 import java.util.UUID;
+
+import static me.ppgome.critterGuard.utility.MessageUtils.notifyPlayer;
 
 /**
  * Handles events related to critter management.
@@ -75,6 +69,10 @@ public class CGEventHandler implements Listener {
      * The instance of the MountSeatHandler for swapping player seats on multi-seat mounts.
      */
     private MountSeatHandler mountSeatHandler;
+    /**
+     * True if LibsDisguises is present and disguise saddles are enabled. False if not.
+     */
+    private boolean libsDisguisesPresent;
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -84,11 +82,12 @@ public class CGEventHandler implements Listener {
         this.savedMountTable = plugin.getSavedMountTable();
         this.savedPetTable = plugin.getSavedPetTable();
         this.critterCache = plugin.getCritterCache();
-        this.tamingHandler = new CritterTamingHandler(plugin);
-        this.accessHandler = new CritterAccessHandler(plugin);
+        this.tamingHandler = plugin.getCritterTamingHandler();
+        this.accessHandler = plugin.getCritterAccessHandler();
         this.disguiseSaddleHandler = plugin.getDisguiseSaddleHandler();
         this.disguiseProvider = plugin.getDisguiseProvider();
         this.mountSeatHandler = new MountSeatHandler(plugin);
+        this.libsDisguisesPresent = disguiseSaddleHandler != null && disguiseProvider != null;
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -115,19 +114,19 @@ public class CGEventHandler implements Listener {
     @EventHandler
     public void onCritterDeath(EntityDeathEvent event) {
         Entity entity = event.getEntity();
-        if(tamingHandler.isMountableEntity(entity)) {
+        if(CritterUtils.isMountableEntity(entity)) {
             SavedMount savedMount = critterCache.getSavedMount(entity.getUniqueId());
             if(savedMount != null && entity.getPassengers().getFirst() instanceof Player player) {
                 UUID playerUuid = player.getUniqueId();
                 if(savedMount.hasFullAccess(playerUuid) && !savedMount.isOwner(playerUuid)) {
-                    notifyPlayer(player, savedMount, config.NOTIFICATION_DIED);
+                    notifyPlayer(player, savedMount, config.NOTIFICATION_DIED, critterCache);
                     plugin.logInfo(player.getName() + " was riding " +
                             savedMount.getEntityOwnerUuid() + "'s mount when it died: " +
                             savedMount.getEntityUuid());
                 }
             }
         }
-        if(!tamingHandler.canHandleTaming(entity)) return; // Only handle tameable entities
+        if(!CritterUtils.canHandleTaming(entity)) return; // Only handle tameable entities
         tamingHandler.processAnimalDeath(entity.getUniqueId());
     }
 
@@ -135,161 +134,38 @@ public class CGEventHandler implements Listener {
     public void onCritterInteract(PlayerInteractEntityEvent event) {
         Entity entity = event.getRightClicked();
 
-        if (!tamingHandler.canHandleTaming(entity)) return;
+        if (!CritterUtils.canHandleTaming(entity)) return;
 
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
         UUID entityUuid = entity.getUniqueId();
         SavedMount savedMount = critterCache.getSavedMount(entityUuid);
 
-        if(critterCache.isAwaitingInfo(playerUuid)) {
-            interactInfo(entity, player);
+        if(critterCache.isAwaitingClick(playerUuid)) {
+            critterCache.removeAwaitingClickAndExecute(playerUuid, entity);
             event.setCancelled(true);
             return;
         }
 
-        if (savedMount == null || savedMount.isOwner(playerUuid)) {
-            // Not a saved mount, player is the owner, pending access request
-            if(critterCache.isAwaitingAccess(playerUuid)) {
-                interactAccess(playerUuid, player, savedMount, entityUuid, entity);
-                event.setCancelled(true);
-            }
-            // Not a saved mount, player is the owner, pending tame request
-            else if(critterCache.isAwaitingTame(playerUuid)) {
-                interactTame(playerUuid, player, entityUuid, entity);
-                event.setCancelled(true);
-            } else if(critterCache.isAwaitingUntame(playerUuid)) {
-                tamingHandler.untame(playerUuid, player, savedMount, entityUuid, entity);
-                clickDing(player, entity);
-                event.setCancelled(true);
-            }
-        } else {
-            // Player has mount access. Allow passthrough
-            if(savedMount.hasAccess(playerUuid)) return;
+        // Player has mount access, or this mount isn't tamed. Allow passthrough
+        if(savedMount == null || savedMount.hasAccess(playerUuid) || savedMount.isOwner(playerUuid)) return;
             // Saved mount, player is not the owner
-            else if (!savedMount.hasAccess(playerUuid)) {
-                if(config.CAN_BREED_LOCKED_ANIMALS && entity instanceof Animals animal && animal.isAdult()
-                        && animal.isBreedItem(player.getActiveItem())) {
-                    return; // Allow breeding
-                }
-                // Player does not have access, prevent interaction
-                event.setCancelled(true);
-                // Let the player know who the owner is. Get name asynchronously as it's thread-blocking
-                accessHandler.getOwnerName(savedMount.getEntityOwnerUuid()).thenAccept(ownerName -> {
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(PlaceholderParser
-                            .of(config.PERMISSION_INTERACT)
-                            .player(ownerName)
-                            .parse()));
-                });
+        if (!savedMount.hasAccess(playerUuid)) {
+            if(config.CAN_BREED_LOCKED_ANIMALS && entity instanceof Animals animal && animal.isAdult()
+                    && animal.isBreedItem(player.getActiveItem())) {
+                return; // Allow breeding
             }
-            // Player clicking is trying to untame the entity
-            if(critterCache.isAwaitingUntame(playerUuid)) {
-                tamingHandler.untame(playerUuid, player, savedMount, entityUuid, entity);
-            }
+            // Player does not have access, prevent interaction
             event.setCancelled(true);
+            // Let the player know who the owner is. Get name asynchronously as it's thread-blocking
+            accessHandler.getOwnerName(savedMount.getEntityOwnerUuid()).thenAccept(ownerName -> {
+                Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(PlaceholderParser
+                        .of(config.PERMISSION_INTERACT)
+                        .player(ownerName)
+                        .parse()));
+            });
         }
-    }
-
-    /**
-     * Performs the ownership checks on the entity that's being queried by "/cg info".
-     *
-     * @param entity the entity being checked
-     * @param player the player checking the entity
-     */
-    private void interactInfo(Entity entity, Player player) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            String ownerName;
-            if(entity instanceof Tameable tameable && tameable.isTamed()) {
-                ownerName = tameable.getOwner().getName();
-                sendInfo(entity, player, ownerName);
-            } else {
-                SavedMount mount = critterCache.getSavedMount(entity.getUniqueId());
-                if(mount != null) {
-                    ownerName = Bukkit.getOfflinePlayer(mount.getEntityOwnerUuid()).getName();
-                    sendInfo(entity, player, ownerName);
-                } else {
-                    sendInfo(entity, player, "Nobody");
-                }
-            }
-        });
-    }
-
-    /**
-     * Puts together the message to send the player who's finishing up a "/cg info" query.
-     *
-     * @param entity the entity being checked
-     * @param player the player checking the entity
-     * @param ownerName the name of the owner of the entity
-     */
-    private void sendInfo(Entity entity, Player player, String ownerName) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Component message = Component.text(ownerName, NamedTextColor.YELLOW)
-                    .append(Component.text(" owns this critter!", NamedTextColor.GREEN));
-            if(entity instanceof AbstractHorse abstractHorse) {
-                DecimalFormat df = new DecimalFormat("#.###");
-                df.setRoundingMode(RoundingMode.UP);
-                message = message.appendNewline().append(Component.text("Speed: ", NamedTextColor.RED))
-                        .append(Component.text(df.format(abstractHorse.getAttribute(Attribute.MOVEMENT_SPEED).getValue()),
-                                NamedTextColor.YELLOW)).appendNewline()
-                        .append(Component.text("Jump: ", NamedTextColor.BLUE))
-                        .append(Component.text(df.format(abstractHorse.getAttribute(Attribute.JUMP_STRENGTH).getValue()),
-                                NamedTextColor.YELLOW)).appendNewline()
-                        .append(Component.text("Health: ", NamedTextColor.GREEN))
-                        .append(Component.text(df.format(abstractHorse.getAttribute(Attribute.MAX_HEALTH).getValue()),
-                                NamedTextColor.YELLOW)).appendNewline();
-            }
-            player.sendMessage(message);
-            critterCache.removeAwaitingInfo(player.getUniqueId());
-            clickDing(player, entity);
-        });
-    }
-
-    /**
-     * Handles the logic required for players who are clicking on the mount to modify the access of another player.
-     *
-     * @param playerUuid The UUID of the player who is clicking the mount
-     * @param player The player who is clicking the mount
-     * @param savedMount The SavedMount instance of the mount that is being clicked
-     * @param entityUuid The UUID of the mount that is being clicked
-     * @param entity The mount that is being clicked
-     */
-    private void interactAccess(UUID playerUuid, Player player, SavedMount savedMount, UUID entityUuid, Entity entity) {
-        MountAccess mountAccess = critterCache.getAwaitingAccess(playerUuid);
-        UUID beingAddedUuid = UUID.fromString(mountAccess.getPlayerUuid());
-
-        if (mountAccess.isFullAccess()) {
-            accessHandler.handleFullAccess(player, savedMount, mountAccess, beingAddedUuid, entityUuid);
-        } else {
-            accessHandler.handlePassengerAccess(player, entity, savedMount, mountAccess, beingAddedUuid, entityUuid);
-        }
-        clickDing(player, entity);
-    }
-
-    /**
-     * Handles the logic required for players who are clicking on the mount to tame it to another player.
-     *
-     * @param playerUuid The UUID of the player who is clicking the mount
-     * @param player The player who is clicking the mount
-     * @param entityUuid The UUID of the mount that is being clicked
-     * @param entity The mount that is being clicked
-     */
-    private void interactTame(UUID playerUuid, Player player, UUID entityUuid, Entity entity) {
-        savedPetTable.getSavedPet(entityUuid.toString()).thenAccept(savedPet -> Bukkit.getScheduler().runTask(plugin, () -> {
-            if(savedPet == null) {
-                OfflinePlayer playerTaming = critterCache.getAwaitingTame(playerUuid);
-                tamingHandler.handleTaming(playerTaming, entity);
-                critterCache.removeAwaitingTame(playerUuid);
-                player.sendMessage(PlaceholderParser
-                        .of(config.TAMING_TO_OTHERS)
-                        .player(playerTaming.getName())
-                        .parse());
-            }
-        }));
-        clickDing(player, entity);
-    }
-
-    private void clickDing(Player player, Entity entity) {
-        player.playSound(entity, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 0.5f, 1);
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -359,7 +235,7 @@ public class CGEventHandler implements Listener {
             if(!mount.getPassengers().isEmpty()) {
                 // Player has passenger access or is the owner, allow mounting
                 if(hasAccess || savedMount.isOwner(passenger.getUniqueId())) {
-                    if(!disguiseProvider.isDisguised(mount)) return;
+                    if(!libsDisguisesPresent || !disguiseProvider.isDisguised(mount)) return;
                     event.setCancelled(true);
 
                     List<Entity> playerStack = mountSeatHandler.getPlayerStack(mount);
@@ -379,19 +255,21 @@ public class CGEventHandler implements Listener {
                     // Check passenger list AFTER the event to see if the passenger of this event is now the controller
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if(mount.getPassengers().getFirst().getUniqueId().equals(passenger.getUniqueId())) {
-                            notifyPlayer(player, savedMount, config.NOTIFICATION_MOUNTED);
+                            notifyPlayer(player, savedMount, config.NOTIFICATION_MOUNTED, critterCache);
                             plugin.logInfo(player.getName() + " started riding " +
                                     savedMount.getEntityOwnerUuid() + "'s mount: " + savedMount.getEntityUuid());
                         }
                     }, 5L);
                 }
-                String disguiseType = disguiseSaddleHandler.getDisguiseFromSaddle(mount);
-                if(disguiseType != null) disguiseSaddleHandler.applySaddleDisguise(mount, player, disguiseType);
+                if(libsDisguisesPresent) {
+                    String disguiseType = disguiseSaddleHandler.getDisguiseFromSaddle(mount);
+                    if(disguiseType != null) disguiseSaddleHandler.applySaddleDisguise(mount, player, disguiseType);
+                }
                 return;
             }
             // Player does not have access, prevent mounting
             event.setCancelled(true);
-            if(!disguiseProvider.isDisguised(mount)) {
+            if(!libsDisguisesPresent || !disguiseProvider.isDisguised(mount)) {
                 // Let the player know who the owner is. Get name asynchronously as it's thread-blocking
                 accessHandler.getOwnerName(savedMount.getEntityOwnerUuid()).thenAccept(ownerName -> {
                     Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(PlaceholderParser
@@ -403,35 +281,10 @@ public class CGEventHandler implements Listener {
             return;
         }
 
-        if (mountSeatHandler.isCamel(mount) || mountSeatHandler.isHappyGhast(mount) || mount instanceof Strider) {
+        if (CritterUtils.isCamel(mount) || CritterUtils.isHappyGhast(mount) || mount instanceof Strider) {
             tamingHandler.handleTaming(player, mount);
         }
 
-    }
-
-    /**
-     * Send a notification to the owner of the mount regarding other users riding them.
-     * Used for mounting, dismounting, and deaths.
-     *
-     * @param player The player triggering the notification
-     * @param savedMount The mount the notification is about
-     * @param notificationType The type of notification
-     */
-    public void notifyPlayer(Player player, SavedMount savedMount, String notificationType) {
-        Player owner = Bukkit.getPlayer(savedMount.getEntityOwnerUuid());
-        // Send message to owner
-        if(owner != null && owner.isOnline() &&
-                critterCache.getPlayerMeta(owner.getUniqueId()).showNotifications()) {
-            String mountString;
-            if(savedMount.getEntityName() == null) mountString = String.valueOf(savedMount.getEntityUuid());
-            else mountString = savedMount.getEntityName();
-
-            owner.sendMessage(PlaceholderParser
-                    .of(notificationType)
-                    .player(player.getName())
-                    .mount(mountString)
-                    .parse());
-        }
     }
 
     @EventHandler
@@ -442,9 +295,9 @@ public class CGEventHandler implements Listener {
 
         if(mountSeatHandler.isPlayer(mount)) mountSeatHandler.teleportDown(mount, player);
 
-        if((!(mountSeatHandler.isCamel(mount)) && !(mountSeatHandler.isHappyGhast(mount)))) return;
+        if((!(CritterUtils.isCamel(mount)) && !(CritterUtils.isHappyGhast(mount)))) return;
 
-        if(disguiseProvider.isDisguised(mount)) {
+        if(libsDisguisesPresent && disguiseProvider.isDisguised(mount)) {
             disguisedSeatSwap(player, mount);
         } else {
             normalSeatSwap(player, mount);
@@ -489,7 +342,7 @@ public class CGEventHandler implements Listener {
 
         List<Entity> passengers = mountSeatHandler.getPlayerStack(mount);
         passengers.remove(player);
-        if(mountSeatHandler.isHappyGhast(mount) && mount.getPassengers().size() > 1) {
+        if(CritterUtils.isHappyGhast(mount) && mount.getPassengers().size() > 1) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> mountSeatHandler.teleportDown(mount, player), 5L);
         }
 
@@ -509,9 +362,10 @@ public class CGEventHandler implements Listener {
     @EventHandler
     public void onCritterDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
-        if(tamingHandler.isMountableEntity(entity)) {
+        UUID entityUuid = entity.getUniqueId();
+        if(CritterUtils.isMountableEntity(entity)) {
             Vehicle mount = (Vehicle) entity;
-            if(critterCache.getSavedMount(entity.getUniqueId()) != null) {
+            if(critterCache.getSavedMount(entityUuid) != null) {
                 if(mount.getPassengers().isEmpty()) {
                     event.setCancelled(true);
                 } else {
@@ -522,7 +376,7 @@ public class CGEventHandler implements Listener {
                 }
             }
 
-        } else if(tamingHandler.isPetEntity(entity)) {
+        } else if(critterCache.isSavedPet(entityUuid)) {
             Tameable pet = (Tameable) entity;
             Entity damager = event.getDamageSource().getCausingEntity();
             UUID damagerUuid = null;
@@ -543,12 +397,12 @@ public class CGEventHandler implements Listener {
         Entity entity = event.getDismounted();
         Entity dismounting = event.getEntity();
 
-        if (tamingHandler.isMountableEntity(entity)) {
+        if (CritterUtils.isMountableEntity(entity)) {
             SavedMount savedMount = critterCache.getSavedMount(entity.getUniqueId());
             if (savedMount != null && dismounting instanceof Player player) {
 
                 // Check to handle disguised happy ghast dismounts
-                if(mountSeatHandler.isHappyGhast(entity) && disguiseProvider.isDisguised(entity)
+                if(CritterUtils.isHappyGhast(entity) && libsDisguisesPresent && disguiseProvider.isDisguised(entity)
                         && entity.getPassengers().size() > 1) {
                     mountSeatHandler.teleportDown(entity, player);
                 }
@@ -557,13 +411,13 @@ public class CGEventHandler implements Listener {
                 UUID playerUUID = player.getUniqueId();
                 if (savedMount.hasFullAccess(playerUUID) && !savedMount.isOwner(playerUUID) &&
                         entity.getPassengers().getFirst().getUniqueId().equals(playerUUID)) {
-                    notifyPlayer(player, savedMount, config.NOTIFICATION_DISMOUNTED);
+                    notifyPlayer(player, savedMount, config.NOTIFICATION_DISMOUNTED, critterCache);
                     plugin.logInfo(player.getName() + " stopped riding " +
                             savedMount.getEntityOwnerUuid() + "'s mount: " + savedMount.getEntityUuid());
                 }
 
                 // If nobody else will be on this mount after this dismount, undisguise it
-                if(entity.getPassengers().size() <= 1) {
+                if(entity.getPassengers().size() <= 1 && libsDisguisesPresent) {
                     disguiseProvider.removeDisguiseForAll(entity);
                 }
             }
@@ -574,7 +428,7 @@ public class CGEventHandler implements Listener {
     public void onEntitiesUnload(EntitiesUnloadEvent event) {
         World world = event.getWorld();
         for(Entity entity : event.getEntities()) {
-            if(tamingHandler.canHandleTaming(entity)) {
+            if(CritterUtils.canHandleTaming(entity)) {
                 UUID entityUuid = entity.getUniqueId();
                 SavedMount savedMount = critterCache.getSavedMount(entityUuid);
                 if(savedMount != null) {
@@ -593,4 +447,14 @@ public class CGEventHandler implements Listener {
             }
         }
     }
+
+    @EventHandler
+    public void onEntityBreed(EntityBreedEvent event) {
+        if(!(event.getBreeder() instanceof Player player) || !(event.getEntity() instanceof Tameable entity)) return;
+        if(entity.isTamed()) {
+            System.out.println("Taming 1");
+            tamingHandler.handleTaming(player, entity);
+        }
+    }
+
 }

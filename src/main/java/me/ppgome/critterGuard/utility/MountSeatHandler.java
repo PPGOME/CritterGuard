@@ -1,6 +1,7 @@
 package me.ppgome.critterGuard.utility;
 
 import me.ppgome.critterGuard.CGConfig;
+import me.ppgome.critterGuard.CritterCache;
 import me.ppgome.critterGuard.CritterGuard;
 import me.ppgome.critterGuard.database.SavedMount;
 import net.kyori.adventure.text.Component;
@@ -14,6 +15,10 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static me.ppgome.critterGuard.utility.CritterUtils.isCamel;
+import static me.ppgome.critterGuard.utility.CritterUtils.isHappyGhast;
+import static me.ppgome.critterGuard.utility.MessageUtils.notifyPlayer;
 
 /**
  * This class contains methods that handle multi-seated mounts.
@@ -32,6 +37,11 @@ public class MountSeatHandler {
      */
     private CGConfig config;
 
+    /**
+     * The instance of the plugin's cache.
+     */
+    private CritterCache critterCache;
+
     //------------------------------------------------------------------------------------------------------------------
 
     /**
@@ -41,29 +51,10 @@ public class MountSeatHandler {
     public MountSeatHandler(CritterGuard plugin) {
         this.plugin = plugin;
         this.config = plugin.getCGConfig();
+        this.critterCache = plugin.getCritterCache();
     }
 
     //------------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Checks if an entity is a camel.
-     *
-     * @param entity The entity being checked.
-     * @return True if it is, false if not.
-     */
-    public boolean isCamel(Entity entity) {
-        return entity instanceof Camel;
-    }
-
-    /**
-     * Checks if an entity is a happy ghast.
-     *
-     * @param entity The entity being checked.
-     * @return True if it is, false if not.
-     */
-    public boolean isHappyGhast(Entity entity) {
-        return entity instanceof HappyGhast;
-    }
 
     /**
      * Checks if an entity is a player.
@@ -204,9 +195,9 @@ public class MountSeatHandler {
     }
 
     /**
-     * Transfers control of the mount to a new driver and reorders the passengers accordingly.
+     * Transfers control of the undisguised mount to a new driver and reorders the passengers accordingly.
      *
-     * @param mount      The mount entity.
+     * @param mount      The undisguised mount entity.
      * @param passengers The list of current passengers on the mount.
      * @param newDriver  The entity that will become the new driver.
      */
@@ -226,6 +217,13 @@ public class MountSeatHandler {
         }
     }
 
+    /**
+     * Transfers control of the disguised mount to a new driver and reorders the passengers accordingly.
+     *
+     * @param mount      The disguised mount entity.
+     * @param passengers The list of current passengers on the mount.
+     * @param newDriver  The entity that will become the new driver.
+     */
     public void transferControlDisguised(Entity mount, List<Entity> passengers, Entity newDriver) {
         List<Entity> reorderedPassengers = new ArrayList<>();
 

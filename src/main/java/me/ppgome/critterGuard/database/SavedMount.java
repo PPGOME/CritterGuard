@@ -163,6 +163,15 @@ public class SavedMount extends SavedAnimal {
     }
 
     /**
+     * Returns the object representing the specified player's access to this mount.
+     * @param uuid The UUID of the player being fetched
+     * @return the object representing the specified player's access to this mount
+     */
+    public MountAccess getMountAccess(UUID uuid) {
+        return this.accessList.get(uuid);
+    }
+
+    /**
      * Gets the access list for the mount.
      * @return a HashMap of UUIDs and their corresponding access levels
      */

@@ -15,6 +15,9 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 
+import static me.ppgome.critterGuard.utility.CritterUtils.isMountableEntity;
+import static me.ppgome.critterGuard.utility.CritterUtils.isPetEntity;
+
 /**
  * This class provides methods for taming and registering mounts and pets with the plugin.
  */
@@ -71,6 +74,8 @@ public class CritterTamingHandler {
      * @param entity The entity being tamed
      */
     public void handleTaming(OfflinePlayer player, Entity entity) {
+
+        System.out.println("Taming 2");
 
         String entityId = entity.getUniqueId().toString();
         String customName = entity.customName() != null ? entity.customName().toString() : null;
@@ -141,6 +146,8 @@ public class CritterTamingHandler {
                                  String tamerId, String tamerName, String entityType, OfflinePlayer player) {
         SavedPet savedPet;
 
+        System.out.println("Taming 3");
+
         switch (entity) {
             case Wolf wolf:
                 savedPet = new SavedPet(entityId, customName, tamerId, tamerName, entityType,
@@ -148,6 +155,7 @@ public class CritterTamingHandler {
                 completePetRegistration(savedPet, entity);
                 break;
             case Cat cat:
+                System.out.println("Taming 4");
                 savedPet = new SavedPet(entityId, customName, tamerId, tamerName,
                         entityType, cat.getCatType().getKey().getKey());
                 completePetRegistration(savedPet, entity);
@@ -163,43 +171,15 @@ public class CritterTamingHandler {
         registerNewSavedAnimal(savedPet);
         ((Tameable) entity).setOwner(player);
         if(player.isOnline()) {
+            System.out.println("Taming 5");
             Bukkit.getPlayer(player.getUniqueId()).sendMessage(config.TAMING_TO_THEMSELVES);
         }
     }
 
     public void completePetRegistration(SavedPet savedPet, Entity entity) {
+        System.out.println("Taming 6");
         savedPet.setLastLocation(entity.getLocation());
         critterCache.addSavedPet(savedPet);
-    }
-
-    /**
-     * Checks if an entity is mountable in the eyes of the plugin.
-     *
-     * @param entity The entity being checked
-     * @return True if it can be mounted, false if not
-     */
-    public boolean isMountableEntity(Entity entity) {
-        return entity instanceof AbstractHorse || entity instanceof HappyGhast || entity instanceof Strider;
-    }
-
-    /**
-     * Checks if an entity is considered a pet.
-     *
-     * @param entity The entity being checked
-     * @return True if it is considered a pet, false if not
-     */
-    public boolean isPetEntity(Entity entity) {
-        return entity instanceof Wolf || entity instanceof Cat || entity instanceof Parrot;
-    }
-
-    /**
-     * Checks if an entity can be tamed by the plugin.
-     *
-     * @param entity The entity being checked
-     * @return True if it can be tamed, false if not
-     */
-    public boolean canHandleTaming(Entity entity) {
-        return isMountableEntity(entity) || isPetEntity(entity);
     }
 
     /**
@@ -313,7 +293,6 @@ public class CritterTamingHandler {
                 player.sendMessage(config.NOT_TAMED);
             }
         }
-        critterCache.removeAwaitingUntame(playerUuid);
     }
 
     /**
