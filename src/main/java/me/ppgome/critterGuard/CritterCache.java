@@ -40,33 +40,19 @@ public class CritterCache {
      */
     private HashMap<UUID, PlayerMeta> playerMetaCache = new HashMap<>();
 
+    /**
+     * An in-memory cache of pending click events.
+     * This cache is used to store the UUIDs and resulting actions of players who ran a command that requires
+     * them to click on an entity.
+     */
     private HashMap<UUID, ActionHandler> playerClickCache = new HashMap<>();
 
+    /**
+     * An in-memory cache of pending click event delayed tasks.
+     * This cache is used to store the UUIDs and delayed tasks of players who ran a command that requires
+     * them to click on an entity so they can be cancelled before executed.
+     */
     private HashMap<UUID, BukkitTask> clickTaskCache = new HashMap<>();
-
-    /** XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-     * An in-memory cache of awaiting clicks for access requests.
-     * This cache is used to store player UUIDs that are waiting for access clicks.
-     */
-    private HashMap<UUID, MountAccess> accessClickCache = new HashMap<>();
-
-    /**
-     * An in-memory cache of awaiting clicks for tame requests.
-     * This cache is used to store player UUIDs that are waiting for tame clicks.
-     */
-    private HashMap<UUID, OfflinePlayer> tameClickCache = new HashMap<>();
-
-    /**
-     * An in-memory cache of awaiting clicks for untame requests.
-     * This cache is used to store player UUIDs that are waiting for untame clicks.
-     */
-    private Set<UUID> untameClickCache = new HashSet<>();
-
-    /**
-     * An in-memory cache of awaiting clicks for info requests.
-     * This cache is used to store player UUIDs that are waiting for info clicks. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-     */
-    private Set<UUID> infoClickCache = new HashSet<>();
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -159,15 +145,6 @@ public class CritterCache {
      */
     public PlayerMeta getPlayerMeta(UUID playerUuid) {
         return playerMetaCache.get(playerUuid);
-    }
-
-    /**
-     * Removes a player's playermeta from the cache.
-     *
-     * @param playerUuid The UUID of the player whose playermeta is being removed
-     */
-    public void removePlayerMeta(UUID playerUuid) {
-        playerMetaCache.remove(playerUuid);
     }
 
     // -------- Player Click Cache & Click Task Cache
