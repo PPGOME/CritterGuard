@@ -457,4 +457,12 @@ public class CGEventHandler implements Listener {
         }
     }
 
+    @EventHandler
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        Entity entity = event.getEntity();
+        if(event.getSpawnReason().equals(CreatureSpawnEvent.SpawnReason.SPAWNER_EGG) && entity instanceof Tameable tameable) {
+            tameable.setTamed(false);
+        }
+    }
+
 }
