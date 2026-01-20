@@ -27,10 +27,6 @@ messages:
     # PLACEHOLDER: <player> is replaced with the name of the player receiving access
     targetGrantedPassengerAccess: "<green>You have granted <yellow><player></yellow> passenger access to this mount.</green>"
 
-    # Sent to a player when their full access to a mount is revoked
-    # PLACEHOLDER: <player> is replaced with the name of the player revoking access
-    revokedFullAccess: "<green>Your full access to <yellow><player>'s</yellow> mount has been revoked.</green>"
-
     # Sent to a player when their access to a mount is revoked
     # PLACEHOLDER: <player> is replaced with the name of the player revoking access
     revokedAccess: "<green>Your access to <yellow><player>'s</yellow> mount has been revoked.</green>"
