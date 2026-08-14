@@ -64,6 +64,10 @@
             <id>opencollab-snapshot</id>
             <url>https://repo.opencollab.dev/main/</url>
         </repository>
+        <repository>
+            <id>libsdisguises-public</id>
+            <url>https://mvn.lib.co.nz/public/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -86,7 +90,7 @@
         <dependency>
             <groupId>me.libraryaddict.disguises</groupId>
             <artifactId>libsdisguises</artifactId>
-            <version>11.0.0</version>
+            <version>11.0.13</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
