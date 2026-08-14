@@ -1,12 +1,9 @@
 package me.ppgome.critterGuard;
 
 import me.ppgome.critterGuard.actions.ActionHandler;
-import me.ppgome.critterGuard.database.MountAccess;
 import me.ppgome.critterGuard.database.SavedMount;
 import me.ppgome.critterGuard.database.SavedPet;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Entity;
-import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;

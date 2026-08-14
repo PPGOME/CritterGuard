@@ -1,12 +1,12 @@
 name: CritterGuard
 version: ${project.version}
 main: me.ppgome.critterGuard.CritterGuard
-api-version: '1.21.6'
+api-version: '1.21.11'
 prefix: CritterGuard
 authors: [ PPGOME ]
 contributors: [ Oxion_ ]
 description: Locking and tracking for living mounts and tameable pets.
-softdepend: [ LibsDisguises ]
+softdepend: [ LibsDisguises, Floodgate ]
 
 commands:
   critter:

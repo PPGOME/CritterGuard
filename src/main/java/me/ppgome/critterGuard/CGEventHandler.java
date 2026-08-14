@@ -363,7 +363,6 @@ public class CGEventHandler implements Listener {
     public void onCritterDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
         UUID entityUuid = entity.getUniqueId();
-        Tameable pet = (Tameable) entity;
         if(CritterUtils.isMountableEntity(entity)) {
             Vehicle mount = (Vehicle) entity;
             if(critterCache.getSavedMount(entityUuid) != null) {
@@ -377,7 +376,7 @@ public class CGEventHandler implements Listener {
                 }
             }
 
-        } else if(critterCache.isSavedPet(entityUuid) || pet.isTamed()) {
+        } else if(entity instanceof Tameable pet && (critterCache.isSavedPet(entityUuid) || pet.isTamed())) {
             Entity damager = event.getDamageSource().getCausingEntity();
             UUID damagerUuid = null;
             if(damager != null) damagerUuid = damager.getUniqueId();
@@ -452,7 +451,6 @@ public class CGEventHandler implements Listener {
     public void onEntityBreed(EntityBreedEvent event) {
         if(!(event.getBreeder() instanceof Player player) || !(event.getEntity() instanceof Tameable entity)) return;
         if(entity.isTamed()) {
-            System.out.println("Taming 1");
             tamingHandler.handleTaming(player, entity);
         }
     }

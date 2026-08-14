@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -35,6 +36,11 @@ public final class CritterGuard extends JavaPlugin {
      * This object holds various settings and options for the plugin.
      */
     CGConfig config;
+
+    /**
+     * The Floodgate API. Null if Floodgate isn't present on the server.
+     */
+    private FloodgateApi floodgateApi;
 
     /**
      * The URL for the SQLite database used by the CritterGuard plugin.
@@ -132,6 +138,10 @@ public final class CritterGuard extends JavaPlugin {
         if(config.ENABLE_DISGUISE_SADDLES && getServer().getPluginManager().getPlugin("LibsDisguises") != null) {
             disguiseProvider = new LibsDisguiseProvider(this);
             disguiseSaddleHandler = new DisguiseSaddleHandler(this);
+        }
+
+        if(getServer().getPluginManager().getPlugin("Floodgate") != null) {
+            this.floodgateApi = FloodgateApi.getInstance();
         }
 
         getServer().getPluginManager().registerEvents(new CGEventHandler(this), this);

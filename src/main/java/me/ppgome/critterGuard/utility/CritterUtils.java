@@ -11,7 +11,10 @@ public class CritterUtils {
      * @return True if it can be mounted, false if not
      */
     public static boolean isMountableEntity(Entity entity) {
-        return entity instanceof AbstractHorse || entity instanceof HappyGhast || entity instanceof Strider;
+        return entity instanceof AbstractHorse ||
+                entity instanceof HappyGhast ||
+                entity instanceof Strider ||
+                entity instanceof Nautilus;
     }
 
     /**
