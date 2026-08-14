@@ -23,9 +23,12 @@ CritterGuard protects these creatures from theft and harm:
 - Llamas, Camels
 - Happy Ghasts
 - Striders
+- Nautiluses
 
 **Companion Creatures:**
-- Wolves, Cats, Parrots
+- Wolves
+- Cats
+- Parrots
 
 **Protection Rules:**
 - **Companions** (wolves, cats, parrots) can only be killed by their owners
@@ -71,12 +74,12 @@ Transform your mount's appearance with special saddles!
 
 ## Taming Guide
 
-| Creature | Taming Method |
-|----------|---------------|
-| **Horses, Mules, Donkeys** | Ride until they accept you (vanilla method) |
-| **Llamas** | Click with a lead |
-| **Camels, Happy Ghasts** | Simply ride them once |
-| **Wolves, Cats, Parrots** | Use their respective taming items (vanilla method) |
+| Creature                              | Taming Method |
+|---------------------------------------|---------------|
+| **Horses, Mules, Donkeys**            | Ride until they accept you (vanilla method) |
+| **Llamas**                            | Click with a lead |
+| **Camels, Happy Ghasts**              | Simply ride them once |
+| **Wolves, Cats, Parrots, Nautiluses** | Use their respective taming items (vanilla method) |
 
 ---
 
