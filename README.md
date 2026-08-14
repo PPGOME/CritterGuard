@@ -8,7 +8,7 @@ CritterGuard protects your beloved pets from death and theft by introducing an a
 > **Quick Command:** Use `/critter` or the shorter `/cg` for all commands.
 
 > [!IMPORTANT]
-> All releases are published on the [Nerd.Nu repository](https://github.com/NerdNu/CritterGuard)
+> All releases are published on the [Nerd.Nu repository](https://code.nerd.nu/NerdNu/CritterGuard)
 
 ---
 
