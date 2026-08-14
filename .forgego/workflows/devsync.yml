@@ -1,0 +1,22 @@
+name: DevSync
+
+on:
+  push:
+    branches: [ master, Dev-3.0.0 ]
+
+jobs:
+  run-shared-ci:
+    runs-on: docker
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+    
+      - name: Checkout shared actions
+        uses: actions/checkout@v4
+        with:
+          repository: NerdNu/Shared-Actions
+          token: ${{ secrets.EXTRA_ACTION_TOKEN }}
+          path: .forgejo/actions/Shared-Actions
+
+      - name: Run Shared Sync
+        uses: ./.forgejo/actions/Shared-Actions/devsync
